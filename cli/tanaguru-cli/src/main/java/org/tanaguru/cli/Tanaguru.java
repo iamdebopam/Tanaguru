@@ -51,8 +51,8 @@ import org.tanaguru.entity.subject.WebResource;
 import org.tanaguru.service.AuditService;
 import org.tanaguru.service.AuditServiceListener;
 import org.springframework.beans.factory.BeanFactory;
-import org.springframework.context.ApplicationContext;
 import org.springframework.context.support.FileSystemXmlApplicationContext;
+import org.apache.commons.cli.Option;
 
 /**
  * This class launches Tanaguru with urls passed as arguments by the user.
@@ -62,40 +62,37 @@ import org.springframework.context.support.FileSystemXmlApplicationContext;
 public class Tanaguru implements AuditServiceListener {
 
     private static final String APPLICATION_CONTEXT_FILE_PATH = "conf/context/application-context.xml";
-    
+
     private static final String PAGE_AUDIT = "Page";
     private static final String SCENARIO_AUDIT = "Scenario";
-    private static final String FILE_AUDIT = "File";
     private static final String SITE_AUDIT = "File";
 
 
     private static final String[] REFERENTIALS = {"Rgaa32017", "Rgaa42019"};
 
     private static String REF = REFERENTIALS[0];
-    
+
     private static final String BRONZE_LEVEL = "Bz";
     private static final String A_LEVEL = "A";
     private static final String SILVER_LEVEL = "Ar";
     private static final String AA_LEVEL = "AA";
     private static final String GOLD_LEVEL = "Or";
     private static final String AAA_LEVEL = "AAA";
-   
+
     private static final String LEVEL_1 = "LEVEL_1";
     private static final String LEVEL_2 = "LEVEL_2";
     private static final String LEVEL_3 = "LEVEL_3";
-    
+
     private static final int DEFAULT_XMS_VALUE = 64;
-    
+
     private static String LEVEL = SILVER_LEVEL;
-    
+
     private static final String LEVEL_PARAMETER_ELEMENT_CODE = "LEVEL";
-    
+
     private static final Options OPTIONS = createOptions();
-    
+
     private static String AUDIT_TYPE = PAGE_AUDIT;
-    
-    private static String TANAGURU_HOME;
-    
+
     private AuditService auditService = null;
     private AuditDataService auditDataService = null;
     private WebResourceDataService webResourceDataService = null;
@@ -104,13 +101,13 @@ public class Tanaguru implements AuditServiceListener {
     private ProcessRemarkDataService processRemarkDataService = null;
     private ParameterDataService parameterDataService = null;
     private ParameterElementDataService parameterElementDataService = null;
- 
+
     public static void main(String[] args) {
         if (args == null) {
             return;
         }
-        TANAGURU_HOME = System.getenv("TANAGURU_PATH");
-        CommandLineParser clp = new BasicParser();
+        String TANAGURU_HOME = System.getenv("TANAGURU_PATH");
+        CommandLineParser clp = new DefaultParser();
         try {
             CommandLine cl = clp.parse(OPTIONS, args);
             if (cl.hasOption("h")) {
@@ -187,19 +184,19 @@ public class Tanaguru implements AuditServiceListener {
                 if (!isValidPageUrl(cl)) {
                     printUsage();
                 } else {
-                    new Tanaguru().runAuditOnline(cl.getArgs(),TANAGURU_HOME, REF, LEVEL);
+                    new Tanaguru().runAuditOnline(cl.getArgs(), TANAGURU_HOME, REF, LEVEL);
                 }
             } else if (AUDIT_TYPE.equalsIgnoreCase(SCENARIO_AUDIT)) {
                 if (!isValidScenarioPath(cl)) {
                     printUsage();
                 } else {
-                    new Tanaguru().runAuditScenario(cl.getArgs()[0],TANAGURU_HOME, REF, LEVEL);
+                    new Tanaguru().runAuditScenario(cl.getArgs()[0], TANAGURU_HOME, REF, LEVEL);
                 }
-            } else if (AUDIT_TYPE.equalsIgnoreCase(FILE_AUDIT)) {
+            } else if (AUDIT_TYPE.equalsIgnoreCase("File")) {
                 if (!isValidFilePath(cl)) {
                     printUsage();
                 } else {
-                    new Tanaguru().runAuditUpload(cl.getArgs(),TANAGURU_HOME, REF, LEVEL);
+                    new Tanaguru().runAuditUpload(cl.getArgs(), TANAGURU_HOME, REF, LEVEL);
                 }
             } else if (AUDIT_TYPE.equalsIgnoreCase(SITE_AUDIT)) {
                 if (!isValidSiteUrl(cl)) {
@@ -212,7 +209,7 @@ public class Tanaguru implements AuditServiceListener {
         } catch (ParseException ex) {
             java.util.logging.Logger.getLogger(Tanaguru.class.getName()).log(Level.SEVERE, null, ex);
         }
-        
+
     }
 
     public Tanaguru() {
@@ -247,14 +244,14 @@ public class Tanaguru implements AuditServiceListener {
             System.exit(0);
         }
     }
-    
+
     public void runAuditUpload(String[] uploadFilePath, String tanaguruHome, String ref, String level) {
         initServices(tanaguruHome);
 
         Set<Parameter> paramSet = getParameterSetFromAuditLevel(ref, level);
 
         Map<String, String> fileMap = new HashMap<>();
-        for (String file : Arrays.asList(uploadFilePath)) {
+        for (String file : uploadFilePath) {
             File uploadFile = new File(file);
             try {
                fileMap.put(uploadFile.getName(), readFile(uploadFile));
@@ -273,7 +270,7 @@ public class Tanaguru implements AuditServiceListener {
 
         System.out.println("Audit terminated with success at " + audit.getDateOfCreation());
         System.out.println("Audit Id : " + audit.getId());
-        System.out.println("");
+        System.out.println();
         System.out.println("RawMark : " + webResourceStatisticsDataService.getWebResourceStatisticsByWebResource(audit.getSubject()).getRawMark() + "%");
         System.out.println("WeightedMark : " + webResourceStatisticsDataService.getWebResourceStatisticsByWebResource(audit.getSubject()).getMark() + "%");
         System.out.println("Nb Passed : " + webResourceStatisticsDataService.getWebResourceStatisticsByWebResource(audit.getSubject()).getNbOfPassed());
@@ -292,12 +289,12 @@ public class Tanaguru implements AuditServiceListener {
         } else {
             displayWebResourceResult(audit.getSubject(), processResultList);
         }
-        System.out.println("");
+        System.out.println();
         System.exit(0);
     }
 
     private void displayWebResourceResult(WebResource wr, List<ProcessResult> processResultList) {
-        System.out.println("");
+        System.out.println();
         System.out.println("Subject : " + wr.getURL());
         List<ProcessResult> prList = new ArrayList<>();
         for (ProcessResult netResult : processResultList) {
@@ -313,7 +310,7 @@ public class Tanaguru implements AuditServiceListener {
         System.out.println("Nb Pre-qualified : " + webResourceStatisticsDataService.getWebResourceStatisticsByWebResource(wr).getNbOfNmi());
         System.out.println("Nb Not Applicable : " + webResourceStatisticsDataService.getWebResourceStatisticsByWebResource(wr).getNbOfNa());
         System.out.println("Nb Not Tested : " + webResourceStatisticsDataService.getWebResourceStatisticsByWebResource(wr).getNbOfNotTested());
-        
+
         Collections.sort(prList, new Comparator<ProcessResult>() {
             @Override
             public int compare(ProcessResult t, ProcessResult t1) {
@@ -349,9 +346,8 @@ public class Tanaguru implements AuditServiceListener {
     private Set<Parameter> getAuditPageParameterSet(Set<Parameter> defaultParameterSet) {
         ParameterElement parameterElement = parameterElementDataService.getParameterElement("DEPTH");
         Parameter depthParameter = parameterDataService.getParameter(parameterElement, "0");
-        Set<Parameter> auditPageParamSet = parameterDataService.updateParameter(
+        return parameterDataService.updateParameter(
                 defaultParameterSet, depthParameter);
-        return auditPageParamSet;
     }
 
     /**
@@ -359,24 +355,22 @@ public class Tanaguru implements AuditServiceListener {
      * @param tanaguruHome
      */
     private void initServices(String tanaguruHome) {
-        ApplicationContext springApplicationContext = new FileSystemXmlApplicationContext(tanaguruHome + "/" + APPLICATION_CONTEXT_FILE_PATH);
-        BeanFactory springBeanFactory = springApplicationContext;
-        auditService = (AuditService) springBeanFactory.getBean("auditService");
-        auditDataService = (AuditDataService) springBeanFactory.getBean("auditDataService");
-        webResourceDataService = (WebResourceDataService) springBeanFactory.getBean("webResourceDataService");
-        webResourceStatisticsDataService = (WebResourceStatisticsDataService) springBeanFactory.getBean("webResourceStatisticsDataService");
-        processResultDataService = (ProcessResultDataService) springBeanFactory.getBean("processResultDataService");
-        processRemarkDataService = (ProcessRemarkDataService) springBeanFactory.getBean("processRemarkDataService");
-        parameterDataService = (ParameterDataService) springBeanFactory.getBean("parameterDataService");
-        parameterElementDataService = (ParameterElementDataService) springBeanFactory.getBean("parameterElementDataService");
+        auditService = (AuditService) ((BeanFactory) new FileSystemXmlApplicationContext(tanaguruHome + "/" + APPLICATION_CONTEXT_FILE_PATH)).getBean("auditService");
+        auditDataService = (AuditDataService) ((BeanFactory) new FileSystemXmlApplicationContext(tanaguruHome + "/" + APPLICATION_CONTEXT_FILE_PATH)).getBean("auditDataService");
+        webResourceDataService = (WebResourceDataService) ((BeanFactory) new FileSystemXmlApplicationContext(tanaguruHome + "/" + APPLICATION_CONTEXT_FILE_PATH)).getBean("webResourceDataService");
+        webResourceStatisticsDataService = (WebResourceStatisticsDataService) ((BeanFactory) new FileSystemXmlApplicationContext(tanaguruHome + "/" + APPLICATION_CONTEXT_FILE_PATH)).getBean("webResourceStatisticsDataService");
+        processResultDataService = (ProcessResultDataService) ((BeanFactory) new FileSystemXmlApplicationContext(tanaguruHome + "/" + APPLICATION_CONTEXT_FILE_PATH)).getBean("processResultDataService");
+        processRemarkDataService = (ProcessRemarkDataService) ((BeanFactory) new FileSystemXmlApplicationContext(tanaguruHome + "/" + APPLICATION_CONTEXT_FILE_PATH)).getBean("processRemarkDataService");
+        parameterDataService = (ParameterDataService) ((BeanFactory) new FileSystemXmlApplicationContext(tanaguruHome + "/" + APPLICATION_CONTEXT_FILE_PATH)).getBean("parameterDataService");
+        parameterElementDataService = (ParameterElementDataService) ((BeanFactory) new FileSystemXmlApplicationContext(tanaguruHome + "/" + APPLICATION_CONTEXT_FILE_PATH)).getBean("parameterElementDataService");
         auditService.add(this);
     }
 
     /**
-     * 
+     *
      * @param ref
      * @param level
-     * @return 
+     * @return
      */
     private Set<Parameter> getParameterSetFromAuditLevel(String ref, String level) {
         boolean refExists = false;
@@ -401,29 +395,17 @@ public class Tanaguru implements AuditServiceListener {
             level=LEVEL_2;
         } else if (level.equalsIgnoreCase(GOLD_LEVEL) || level.equalsIgnoreCase(AAA_LEVEL)) {
             level=LEVEL_3;
-        } 
+        }
         ParameterElement levelParameterElement = parameterElementDataService.getParameterElement(LEVEL_PARAMETER_ELEMENT_CODE);
         Parameter levelParameter = parameterDataService.getParameter(levelParameterElement, ref + ";" + level);
         Set<Parameter> paramSet = parameterDataService.getDefaultParameterSet();
         return parameterDataService.updateParameter(paramSet, levelParameter);
     }
- 
+
     /**
-     * 
-     * @param urlTab
-     * @return 
-     */
-    private List<String> extractUrlListFromParameter(String urlTab) {
-        String[] pageUrlTab = urlTab.split(";");
-        List<String> pageUrlList = new LinkedList<>();
-        pageUrlList.addAll(Arrays.asList(pageUrlTab));
-        return pageUrlList;
-    }
-    
-    /**
-     * 
+     *
      * @param file
-     * @return 
+     * @return
      */
     private String readFile(File file) throws IOException {
       // #57 issue quick fix.......
@@ -437,69 +419,78 @@ public class Tanaguru implements AuditServiceListener {
      */
     private static Options createOptions() {
         Options options = new Options();
-        
-        options.addOption(OptionBuilder.withLongOpt("help")
-                             .withDescription("Show this message.")
-                             .hasArg(false)
-                             .isRequired(false)
-                             .create("h"));
-        
-        options.addOption(OptionBuilder.withLongOpt("output")
-                             .withDescription("Path to the output result file.")
-                             .hasArg()
-                             .isRequired(false)
-                             .create("o"));
-        
-        options.addOption(OptionBuilder.withLongOpt("firefox-bin")
-                             .withDescription("Path to the firefox bin.")
-                             .hasArg()
-                             .isRequired(false)
-                             .create("f"));
-        
-        options.addOption(OptionBuilder.withLongOpt("display")
-                             .withDescription("Value of the display")
-                             .hasArg()
-                             .isRequired(false)
-                             .create("d"));
-        
-        options.addOption(OptionBuilder.withLongOpt("referential")
-                             .withDescription("Referential : \n"
-                + "- \"Aw22\" for Accessiweb 2.2 (default)\n"
-                + "- \"Rgaa22\" for Rgaa 2.2\n"
-                + "- \"Rgaa30\" for Rgaa 3.0\n")
-                             .hasArg()
-                             .isRequired(false)
-                             .create("r"));
-        
-        options.addOption(OptionBuilder.withLongOpt("level")
-                             .withDescription("Level :\n"
-                + "- \"Or\" for Gold level or AAA level, \n"
-                + "- \"Ar\" for Silver level or AA level (default), \n"
-                + "- \"Bz\" for Bronze level or A level")
-                             .hasArg()
-                             .isRequired(false)
-                             .create("l"));
-        
-        options.addOption(OptionBuilder.withLongOpt("audit-type")
-                             .withDescription("Audit type :\n"
-                + "- \"Page\" for page audit (default)\n"
-                + "- \"File\" for file audit \n"
-                + "- \"Scenario\" for scenario audit \n"
-                + "- \"Site\" for site audit")
-                             .hasArg()
-                             .isRequired(false)
-                             .create("t"));
-        options.addOption(OptionBuilder.withLongOpt("xmx-value")
-                             .withDescription("Xmx value set to the process (without 'M' at the end):\n"
-                + "- default is 256 \n"
-                + "- must be superior to 64 (Xms value)")
-                             .hasArg()
-                             .isRequired(false)
-                             .create("x"));
+
+        options.addOption(Option.builder("h")
+                .longOpt("help")
+                .desc("Show this message.")
+                .hasArg(false)
+                .required(false)
+                .build());
+
+        options.addOption(Option.builder("o")
+                .longOpt("output")
+                .desc("Path to the output result file.")
+                .hasArg()
+                .required(false)
+                .build());
+
+        options.addOption(Option.builder("f")
+                .longOpt("firefox-bin")
+                .desc("Path to the firefox bin.")
+                .hasArg()
+                .required(false)
+                .build());
+
+        options.addOption(Option.builder("d")
+                .longOpt("display")
+                .desc("Value of the display")
+                .hasArg()
+                .required(false)
+                .build());
+
+        options.addOption(Option.builder("r")
+                .longOpt("referential")
+                .desc("Referential : \n"
+                        + "- \"Aw22\" for Accessiweb 2.2 (default)\n"
+                        + "- \"Rgaa22\" for Rgaa 2.2\n"
+                        + "- \"Rgaa30\" for Rgaa 3.0\n")
+                .hasArg()
+                .required(false)
+                .build());
+
+        options.addOption(Option.builder("l")
+                .longOpt("level")
+                .desc("Level :\n"
+                        + "- \"Or\" for Gold level or AAA level, \n"
+                        + "- \"Ar\" for Silver level or AA level (default), \n"
+                        + "- \"Bz\" for Bronze level or A level")
+                .hasArg()
+                .required(false)
+                .build());
+
+        options.addOption(Option.builder("t")
+                .longOpt("audit-type")
+                .desc("Audit type :\n"
+                        + "- \"Page\" for page audit (default)\n"
+                        + "- \"File\" for file audit \n"
+                        + "- \"Scenario\" for scenario audit \n"
+                        + "- \"Site\" for site audit")
+                .hasArg()
+                .required(false)
+                .build());
+
+        options.addOption(Option.builder("x")
+                .longOpt("xmx-value")
+                .desc("Xmx value set to the process (without 'M' at the end):\n"
+                        + "- default is 256 \n"
+                        + "- must be superior to 64 (Xms value)")
+                .hasArg()
+                .required(false)
+                .build());
 
         return options;
     }
-    
+
     /**
      * Print usage
      */
@@ -509,7 +500,7 @@ public class Tanaguru implements AuditServiceListener {
     }
 
     /**
-     * 
+     *
      * @param path
      * @param option
      * @param testWritable
@@ -527,12 +518,12 @@ public class Tanaguru implements AuditServiceListener {
         System.out.println("\n"+path + " is an invalid path for " + option + " option.\n");
         return false;
     }
-    
+
     /**
-     * 
+     *
      * @param display
      * @param option
-     * @return whether the given display is valid 
+     * @return whether the given display is valid
      */
     private static boolean isValidDisplay(String display, String option) {
         try {
@@ -543,9 +534,9 @@ public class Tanaguru implements AuditServiceListener {
             return false;
         }
     }
-    
+
     /**
-     * 
+     *
      * @param ref
      * @return whether the given referential is valid
      */
@@ -559,14 +550,14 @@ public class Tanaguru implements AuditServiceListener {
         System.out.println("\nThe referential \"" + ref + "\" doesn't exist.\n");
         return false;
     }
-    
+
     /**
-     * 
+     *
      * @param level
      * @return whether the given level is valid
      */
     private static boolean isValidLevel(String level) {
-        if (StringUtils.equals(level, BRONZE_LEVEL) || 
+        if (StringUtils.equals(level, BRONZE_LEVEL) ||
                 StringUtils.equals(level, SILVER_LEVEL) ||
                 StringUtils.equals(level, GOLD_LEVEL)) {
             return true;
@@ -574,16 +565,16 @@ public class Tanaguru implements AuditServiceListener {
         System.out.println("\nThe level \"" + level + "\" doesn't exist.\n");
         return false;
     }
-    
+
     /**
-     * 
+     *
      * @param xmxStr
      * @return whether the given level is valid
      */
     private static boolean isValidXmxValue(String xmxStr) {
       System.out.println(xmxStr);
         try {
-            int xmxValue = Integer.valueOf(xmxStr);
+            int xmxValue = Integer.parseInt(xmxStr);
             if (xmxValue <= DEFAULT_XMS_VALUE) {
                 System.out.println("\nThe value of the Xmx value \"" + xmxStr + "\" must be superior to "+DEFAULT_XMS_VALUE+".\n");
                 return false;
@@ -594,15 +585,15 @@ public class Tanaguru implements AuditServiceListener {
         }
         return true;
     }
-    
+
     /**
-     * 
+     *
      * @param auditType
      * @return whether the given level is valid
      */
     private static boolean isValidAuditType(String auditType) {
-        if (StringUtils.equalsIgnoreCase(auditType,PAGE_AUDIT) || 
-                StringUtils.equalsIgnoreCase(auditType, FILE_AUDIT) ||
+        if (StringUtils.equalsIgnoreCase(auditType,PAGE_AUDIT) ||
+                StringUtils.equalsIgnoreCase(auditType, "File") ||
                 StringUtils.equalsIgnoreCase(auditType, SITE_AUDIT) ||
                 StringUtils.equalsIgnoreCase(auditType, SCENARIO_AUDIT)) {
             return true;
@@ -610,9 +601,9 @@ public class Tanaguru implements AuditServiceListener {
         System.out.println("\nThe audit type \"" + auditType + "\" doesn't exist.\n");
         return false;
     }
-    
+
     /**
-     * 
+     *
      * @param cl
      * @return whether the given level is valid
      */
@@ -650,7 +641,7 @@ public class Tanaguru implements AuditServiceListener {
 
         return true;
     }
-    
+
     private static boolean isValidFilePath( CommandLine cl) {
         if (cl.getArgList().isEmpty()) {
             System.out.println("\nPlease specify at least one file\n");
@@ -665,7 +656,7 @@ public class Tanaguru implements AuditServiceListener {
         }
         return true;
     }
-    
+
     private static boolean isValidScenarioPath( CommandLine cl) {
         if (cl.getArgList().isEmpty()) {
             System.out.println("\nPlease specify at least one scenario\n");
